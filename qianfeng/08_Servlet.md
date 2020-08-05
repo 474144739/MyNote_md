@@ -93,20 +93,20 @@ Servlet无法独立运行，需要通过服务器接收到请求后再执行Serv
 
 
 
-### cookie和session
+### Cookie和Session
 
-#### cookie
+#### Cookie
 
 服务器响应给浏览器端，并在浏览器端可以长时间保留的数据（基于HTTP标准的）
 
-* 应用：
+* 使用：
 
-  服务器端将数据存储到浏览器端
+  * 服务器端将数据存储到浏览器端
 
-    ```java
-  //创建cookie对象
-  Cookie cookie = new Cookie("username", "admin");
-  resp.addCookie(cookie);
+    	```java
+  	//创建cookie对象
+  	Cookie cookie = new Cookie("username", "admin");
+  	resp.addCookie(cookie);
   resp.sendRedirect("success.html");
     ```
 
@@ -134,4 +134,8 @@ Servlet无法独立运行，需要通过服务器接收到请求后再执行Serv
   }
   ```
 
-  
+
+#### Session
+
+表示浏览器和服务器之间的一次回话，可以在session中存储数据。存储在服务端（保存服务器和客户端的一次会话）
+
