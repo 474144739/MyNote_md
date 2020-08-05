@@ -89,3 +89,49 @@ Servlet无法独立运行，需要通过服务器接收到请求后再执行Serv
     HTTPServletRequest对象由tomcat接收到请求以后，组成HTTPServletRequest对象并放置在处理请求的service方法参数中
   
 
+### 请求与转发
+
+
+
+### cookie和session
+
+#### cookie
+
+服务器响应给浏览器端，并在浏览器端可以长时间保留的数据（基于HTTP标准的）
+
+* 应用：
+
+  服务器端将数据存储到浏览器端
+
+    ```java
+  //创建cookie对象
+  Cookie cookie = new Cookie("username", "admin");
+  resp.addCookie(cookie);
+  resp.sendRedirect("success.html");
+    ```
+
+* 服务器端将cookie响应给浏览器，默认的有效时间是从创建开始到浏览器关闭。
+
+* 请求转发和重定向都可以将cookie响应给浏览器
+
+* 设置cookie存储在浏览器中的有效时间
+
+  ```java
+  Cookie cookie = new Cookie("username", "admin");
+  //设置cookie的有效时间（单位是秒），参数为正数时，设置具体的有效时间；设置为0时相当于删除cookie（不保留cookie），负数时，为默认有效时间（浏览器关闭时结束）
+  cookie.setMaxAge(30);
+  resp.addCookie(cookie);
+  resp.sendRedirect("success.html");
+  ```
+
+* cookie可以实现同一服务器不同Servlet之间进行数据共享
+
+  ```java
+  Cookie[] cookies = req.getCookies();
+  for(Cookie c : cookies){
+      System.out.println(c.getName());
+  	System.out.println(c.getValue());
+  }
+  ```
+
+  
