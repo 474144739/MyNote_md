@@ -88,10 +88,147 @@ Servlet无法独立运行，需要通过服务器接收到请求后再执行Serv
   
     HTTPServletRequest对象由tomcat接收到请求以后，组成HTTPServletRequest对象并放置在处理请求的service方法参数中
   
+* Servlet的请求与响应
 
-### 请求与转发
+  * ServletAPI中提供了获取请求与完成响应的对象，分别为ServletRequest和ServletResponse，HttpServlet中提供了ServletRequest HttpServletRequest和ServletResponse的子接口，HttpServletResponse是针对于http协议下的请求与响应的对象，直接赋值给了doXXX()方法的参数中
 
+  1. 请求与响应
 
+     ```java
+     //获取请求传递的数据（请求参数）
+     String username = req.getParameter("username");
+     String password = req.getParameter("password");
+     //简单的响应,利用字符流，向浏览器响应字符
+     PrintWriter pw = resp.getWriter();
+     if(username.equals("chris") && password.equals("123")) {
+         pw.write("<b>login success</b>");
+     }else {
+         pw.write("<b>login failed</b>");
+     }
+     pw.close();
+     ```
+
+  2. HttpServletRequest
+
+     * HttpServletRequest对象可以获得一个请求中所有信息
+
+     ```java
+     //获取请求参数
+     String username = req.getParameter("username");
+     System.out.println(username);
+     //HttpServletRequest对象提供的其他方法
+     System.out.println("上下文路径：" + req.getContextPath());
+     System.out.println("本地地址："+ req.getLocalAddr());
+     System.out.println("本地端口：" + req.getLocalPort());
+     System.out.println("请求头中的内容类型" + req.getContentType());
+     System.out.println("请求方式：" + req.getMethod());
+     System.out.println("获取请求遵守的协议：" + req.getProtocol());
+     System.out.println("获取访问的servlet路径：" + req.getServletPath());
+     ```
+
+     * 重要的方法：**getContextPath()**用于获取上下文路径，**getMethod()**用于获取请求方式，**getServletPath()**用于获取Servlet访问路径
+
+     * 常用的方法：获取请求参数**getParameter()** ，获取作用域数据**getAttribute()**
+
+     获取多参数**getParameterValues()**
+
+* get请求和post请求区别
+
+  * get请求会将传递的参数显示到url路径上
+  * post请求会将传递的参数，以简直对形式存储到请求体中
+  * get请求一般用于查询操作，因为数据直接显示在url上，不应该直接传递增删改的数据
+  * post请求往往用于传递增删改的数据
+  * post相对get更安全
+  * get请求能够传递的参数有大小限制，一般浏览器会限制到几kb
+  * post请求传递的参数大小原则上无限制，所以上传文件一般是post请求
+
+* HttpServletResponse
+
+  * 响应和跳转页面
+
+    ```java
+    //获取打印对象，可使用对象的write()方法打印数据到页面
+    PrintWrite pw = resp.getWrite();
+    pw.write();
+    pw.flush();
+    pw.close();
+    //跳转页面，页面重定向
+    resp.sendRedirect("访问路径");
+    ```
+
+* 请求与响应的乱码处理
+
+  * 乱码处理的前提：页面，项目，java代码的编码必须统一
+
+  * get请求处理乱码
+
+    * 由于get请求的参数放置在url上，路径的解析是交给服务器处理的，所以get请求的乱码处理需要配置服务器（Tomcat）
+
+    * 配置Tomcat中的server.xml
+
+      ```xml
+      <Connector connectionTimeout="20000" port="8080" URIEncoding="UTF-8" protocol="HTTP/1.1" redirectPort="8443"/>
+      ```
+
+  * post请求处理乱码：
+
+    ```java
+    //post请求处理乱码，req.setCharacterEncoding仅对post请求有效
+    //一定要放置在获取数据之前转码
+    req.setCharacterEncoding("utf-8");
+    ```
+
+  * 响应处理乱码：
+
+    ```java
+    //防止在响应内容前
+    resp.setContentType("text/html;charset=utf-8");
+    ```
+
+  * 注意：如果后端接收的数据未出现乱码，但是数据库中数据乱码，需要在数据库连接字符串部分增加编码处理
+
+    ```properties
+    jdbc:mysql://localhost:3306/数据库名?useUnicode=true&characterEncoding=utf8
+    ```
+
+### 请求转发和重定向
+
+1. 请求转发
+
+   * Servlet接收到请求后，可以将该请求转发给其他资源（Servlet，jsp，html），Servlet和jsp是可以接收和转发数据的，但是html无法接收，所以一般请求转发都是转发给Servlet和jsp
+
+   * request.getRequestDispatcher返回了RequestDispatcher对象，通过该对象实现将请求转发给某个资源
+
+     ```java
+     //getRequestDispatcher返回值RequestDispatcher，参数是要转发给某个资源的路径
+     RequestDispatcher rd = req.getRequestDispatcher("login2");
+     //转发过去
+     rd.forward(req, resp);
+     rd.include(req,resp);
+     ```
+
+     * includ和forward的区别
+       1. 都能实现请求转发，都能传递数据给另一个资源
+       2. forward是所有响应内容都交由转发对象处理，include是响应内容，由本身的Servlet及转发的Servlet共同响应给浏览器
+
+   * 请求转发的特点
+
+     * 一个请求可能由多个Servlet处理
+     * 在客户端路径地址栏上只保留发送请求的路径，然后由浏览器向这个路径发送请求（一次请求）
+
+2. 请求重定向
+
+   ```java
+   response.sendRedirct("路径");
+   ```
+
+   * 相当于向浏览器重新发送一个路径，然后由浏览器向这个路径发送请求，**请求重定向会发送至少两次请求**
+
+* 请求转发和请求重定向的区别：
+  1.  请求转发在浏览器端只有一次请求，请求重定向至少两次请求
+  2.  请求转发是可以将数据传递给另一个资源，但是请求重定向不可以。
+  3. 请求转发会根据当前请求的请求方式调用另一个资源的doGet或者doPost方法，重定向无论是什么请求方式都会调用另一个资源的doGet方法。
+  4. 请求转发和请求重定向编写相对路径时是相同的，编写了绝对路径（路径前加/），请求转发路径从项目名开始，请求重定向从服务器路径（localhost:8080）开始。
 
 ### Cookie和Session
 
@@ -138,4 +275,12 @@ Servlet无法独立运行，需要通过服务器接收到请求后再执行Serv
 #### Session
 
 表示浏览器和服务器之间的一次回话，可以在session中存储数据。存储在服务端（保存服务器和客户端的一次会话）
+
+# Filter
+
+使用getRequestURL屏蔽掉login.html和register.html
+
+```java
+String path = request.getRequestUrl();
+```
 
