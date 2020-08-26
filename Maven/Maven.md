@@ -60,7 +60,7 @@
     <packaging>jar</packaging>  
   
     <!-- 帮助定义构件输出的一些附属构件,附属构件与主构件对应，有时候需要加上classifier才能唯一的确定该构件 不能直接定义项目的classifer,因为附属构件不是项目直接默认生成的，而是由附加的插件帮助生成的 -->  
-    <classifier>...</classifier>  
+    <classifier></classifier>  
   
     <!-- 定义本项目的依赖关系 -->  
     <dependencies>  
@@ -99,8 +99,7 @@
         <java.source.version>1.5</java.source.version>  
         <java.target.version>1.5</java.target.version>  
     </properties>  
-  
-    ...  
+    
 </project>
 ```
 
