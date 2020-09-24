@@ -47,15 +47,15 @@
 
 * ##### `tar`：打包或解压文件
 
-  * -c：创建一个新tar文件
-  * -v：显示运行过程的信息
-  * -f：指定文件名
-  * -z：调用`gzip`压缩命令进行压缩
-  * -t：查看压缩文件的内容
-  * -x：解开tar文件
+  * `-c`：创建一个新tar文件
+  * `-v`：显示运行过程的信息
+  * `-f`：指定文件名
+  * `-z`：调用`gzip`压缩命令进行压缩
+  * `-t`：查看压缩文件的内容
+  * `-x`：解开tar文件
   * 打包：`tar –cvf xxx.tar ./*`
   * 打包并且压缩：`tar –zcvf xxx.tar.gz ./* `
-  * 解压  `ar –xvf xxx.tar tar -zxvf xxx.tar.gz -C /usr/aaa`
+  * 解压  `tar –xvf xxx.tar tar -zxvf xxx.tar.gz -C /usr/aaa`
 
 * ##### `find`：用于查找符合条件的文件
 
@@ -145,7 +145,7 @@
 
 * ##### IP地址配置
 
-  ```reStructuredText
+  ```shell
   ifconfig 查看(修改)ip地址(重启后无效)
   ifconfig eth0 192.168.12.22 修改ip地址
   如果想要永久生效
@@ -170,25 +170,41 @@
 
 * ##### 网络服务管理
 
-  ```reStructuredText
-  service network status 查看指定服务的状态
-  service network stop 停止指定服务
-  service network start 启动指定服务
-  service network restart 重启指定服务
+  ```shell
+  service network status #查看指定服务的状态
+  service network stop #停止指定服务
+  service network start #启动指定服务
+  service network restart #重启指定服务
   
-  service --status–all 查看系统中所有后台服务
-  netstat –nltp 查看系统中网络进程的端口监听情况
+  service --status–all #查看系统中所有后台服务
+  netstat –nltp #查看系统中网络进程的端口监听情况
   
-  防火墙设置
-  防火墙根据配置文件/etc/sysconfig/iptables来控制本机的”出”、”入”网络访问行为。
+  #防火墙设置
+  #防火墙根据配置文件/etc/sysconfig/iptables来控制本机的”出”、”入”网络访问行为。
   service iptables status 查看防火墙状态
-  service iptables stop 关闭防火墙
-  service iptables start 启动防火墙
-  chkconfig  iptables off 禁止防火墙自启
+  service iptables stop #关闭防火墙
+  service iptables start #启动防火墙
+  chkconfig  iptables off #禁止防火墙自启
   ```
-  
 
-# Linux的软件安装
+# VIM编辑器的使用
+
+* ##### vim命令模式：
+
+  * `i`：切换到输入模式，编辑文本
+  * `a`：在当前光标的后一个位置开始编辑文本
+  * `o`：在当前光标的下一行开始编辑文本
+  * `ZZ`：保存并退出
+
+* ##### vim底线命令模式：
+
+  * 在命令模式下输入英文 : 后进入底线命令模式
+  * `wq`：保存并退出
+  * `q`：未修改状态下，仅退出
+  * `w`：保存文本的修改的内容
+  * `q!`：修改文本后，不保存退出
+
+# Linux的软件安装(使用远程连接)
 
 *  Linux上的软件安装有以下几种常见方式介绍
     1. 二进制发布包
