@@ -53,7 +53,250 @@ A、B、C、D四个服务都可以拿到Eureka Server的注册清单。这四个
 
 ![image-20201019170547630](https://gitee.com/yuer-pic/picgo/raw/master/pictures/20201019210058.png)
 
-## RestTemplate和Ribbon
+### Eureka的具体实现
+
+#### 创建EurekaServer
+
+1. 创建父工程，并且在父工程中指定[SpringCloud](https://spring.io/projects/spring-cloud)版本，并且将packing修改为pom
+
+   ```xml
+   <properties>
+       <spring.cloud-version>Hoxton.SR8</spring.cloud-version>
+   </properties>
+   <dependencyManagement>
+       <dependencies>
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-dependencies</artifactId>
+               <version>${spring.cloud-version}</version>
+               <type>pom</type>
+               <scope>import</scope>
+           </dependency>
+       </dependencies>
+   </dependencyManagement>
+   ```
+
+2. 创建Eureka的Server，创建SpringBoot工程module，并且导入依赖，在启动类中添加注解并编写yml文件
+
+   导入依赖
+
+   ```xml
+   <dependencies>
+       <dependency>
+           <groupId>org.springframework.cloud</groupId>
+           <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+       </dependency>
+   
+       <dependency>
+           <groupId>org.springframework.boot</groupId>
+           <artifactId>spring-boot-starter-web</artifactId>
+       </dependency>
+   </dependencies>
+   ```
+
+   启动类添加注解
+
+   ```java
+   @SpringBootApplication
+   @EnableEurekaServer
+   public class EurekaApplication {
+   
+       public static void main(String[] args) {
+           SpringApplication.run(EurekaApplication.class,args);
+       }
+   }
+   ```
+
+   yml文件
+
+   ```yaml
+   server:
+     port: 8761      # 端口号
+     
+   eureka:
+     instance:
+       hostname: localhost   # localhost
+     client:
+       # 当前的eureka服务是单机版的
+       registerWithEureka: false
+       fetchRegistry: false
+       serviceUrl:
+       # 向Eureka服务器注册
+         defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+   ```
+
+#### 创建EurekaClient
+
+创建Maven module，修改为SpringBoot
+
+导入依赖
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+</dependency>
+```
+
+在启动类上注解
+
+```java
+@SpringBootApplication
+@EnableEurekaClient
+public class CustomerApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(CustomerApplication.class,args);
+    }
+
+}
+```
+
+yml文件
+
+```yaml
+# 指定Eureka服务地址
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+#指定服务的名称
+spring:
+  application:
+    name: CUSTOMER
+```
+
+#### 测试Eureka
+
+创建一个Search模块，并按照EurekaClient的方式，注册到Eureka
+
+```java
+@Autowired
+private EurekaClient eurekaClient;
+```
+
+Controller使用RestTemplate
+
+```java
+@GetMapping("/customer")
+public String customer(){
+    //1. 通过eurekaClient获取到SEARCH服务的信息
+    InstanceInfo info = eurekaClient.getNextServerFromEureka("SEARCH", false);
+
+    //2. 获取到访问的地址
+    String url = info.getHomePageUrl();
+    System.out.println(url);
+
+    //3. 通过restTemplate访问
+    String result = restTemplate.getForObject(url + "/search", String.class);
+
+    //4. 返回
+    return result;
+}
+```
+
+#### Eureka的安全性
+
+实现Eureka服务的安全认证
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+```
+
+编写配置类
+
+```java
+@EnableWebSecurity
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        // 忽略掉/eureka/**
+        http.csrf().ignoringAntMatchers("/eureka/**");
+        super.configure(http);
+    }
+}
+```
+
+EurekaClient需要添加用户名和密码
+
+EurekaClient上的yml需要添加
+
+```yml
+eureka:
+  client:
+    service-url:
+      defaultZone: http://用户名:密码@localhost:8761/eureka
+```
+
+#### Eureka的高可用
+
+为了防止项目在运行时Eureka突然宕机的情况，可以准备多Eureka台服务。
+
+- 如果调用方访问过一次被调用方，Eureka的宕机不会影响到当前功能。
+- 如果调用方未访问过被调用方，Eureka会造成当前功能的不可用。
+
+##### 搭建Eureka高可用
+
+再创建一台相同的EurekaServer和第一台服务器的内容相同，端口不同
+
+EurekaCLient上的配置文件yml
+
+```yaml
+eureka:
+  client:
+    service-url:
+      defaultZone: http://root:root@localhost:8761/eureka,http://root:root@localhost:8762/eureka
+```
+
+EurekaServer互相注册到对方EuerkaServer中
+
+```yaml
+eureka:
+  client:
+    registerWithEureka: true      # 注册到Eureka上
+    fetchRegistry: true           # 从Eureka拉取信息
+    serviceUrl:
+      defaultZone: http://root:root@localhost:8762/eureka/
+```
+
+#### Eureka的其他细节
+
+- 当EurekaClient调用服务，本地没有注册信息缓存的时，会去EurekaServer中获取服务的注册信息。
+- EurekaClient会通过“心跳”的方式和EurekaServer进行连接。（EurekaClient默认30秒向EurekaServer发送一次心跳请求，如果超过90秒未发送心跳信息，EurekaServer会认为当前EurekaClient宕机，将当前EurekaClient从注册中剔除，但是Eureka默认开启了自我保护机制，EurekaCLient会保存在当前注册表中）
+
+```yaml
+eureka:
+  instance:
+    lease-renewal-interval-in-seconds: 30      #心跳的间隔
+    lease-expiration-duration-in-seconds: 90    # 多久没发送，就认为你宕机了
+```
+
+EurekaClient回每隔30秒去EurekaServer中更新本地之策表的缓存信息
+
+```yaml
+eureka:
+  client:
+    registry-fetch-interval-seconds: 30 # 每隔多久去更新一下本地的注册表缓存信息
+```
+
+Eureka的自我保护机制，统计15分钟内，如果一个服务的心跳发送比例低于85%，EurekaServer就会开启自我保护机制
+
+- 不会从EurekaServer中移除长时间未收到心跳的服务。
+- EurekaServer仍然可以正常提供服务。
+- 网络稳定时，EurekaServer才会将自己的信息被其他信息的节点同步过去
+
+```yaml
+eureka:
+  server:
+    enable-self-preservation: true  # 开启自我保护机制
+```
+
+## RestTemplate和Ribbon负载均衡
 
 通过Eureka服务治理框架，我们可以通过服务名来调用相应的服务了，一般在使用SpringCloud不需要自己手动创建HTTPClient来进行远程调用。
 
